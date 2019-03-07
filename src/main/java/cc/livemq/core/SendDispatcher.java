@@ -1,6 +1,6 @@
 package cc.livemq.core;
 
-import cc.livemq.core.wire.MqttWireMessage;
+import cc.livemq.core.mqtt.wire.MqttAbstractMessage;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.Closeable;
@@ -20,14 +20,14 @@ public final class SendDispatcher implements Closeable {
     /**
      * 非阻塞的线程安全消息队列
      */
-    private final Queue<MqttWireMessage> queue = new ConcurrentLinkedQueue<>();
+    private final Queue<MqttAbstractMessage> queue = new ConcurrentLinkedQueue<>();
     private final AtomicBoolean isSending = new AtomicBoolean();
 
     public SendDispatcher(Sender sender) {
         this.sender = sender;
     }
 
-    public void send(MqttWireMessage message) throws IOException {
+    public void send(MqttAbstractMessage message) throws IOException {
         // offer: 添加一个元素并返回 true, 如果队列已满，则返回 false
         boolean offer = queue.offer(message);
         if(!offer) {
@@ -41,7 +41,7 @@ public final class SendDispatcher implements Closeable {
 
     private void sendNextMessage() throws IOException {
         // poll: 移除并返回队列头部的元素，如果队列为空，则返回 null
-        MqttWireMessage message = queue.poll();
+        MqttAbstractMessage message = queue.poll();
         if(message == null) {
             log.error("消息发送队列为空，未获取到消息!!");
             return;

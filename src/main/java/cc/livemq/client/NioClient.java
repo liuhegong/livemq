@@ -1,8 +1,7 @@
 package cc.livemq.client;
 
 import cc.livemq.core.Connector;
-import cc.livemq.core.Context;
-import cc.livemq.core.wire.MqttWireMessage;
+import cc.livemq.core.mqtt.wire.MqttAbstractMessage;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
@@ -15,31 +14,22 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 @Slf4j
 public final class NioClient {
-    private final AtomicBoolean isClosed = new AtomicBoolean(true);
+    private final AtomicBoolean isClosed = new AtomicBoolean();
+    private final SocketChannel channel;
     private Connector connector;
 
+    public NioClient() throws IOException {
+        channel = SocketChannel.open();
+    }
+
     public void connect(String host, int port) throws IOException {
-        if(isClosed.compareAndSet(true, false)) {
-            SocketChannel channel = SocketChannel.open();
-            channel.configureBlocking(false);
-            channel.connect(new InetSocketAddress(host, port));
-            log.info("已发起服务端连接~~");
+        channel.connect(new InetSocketAddress(host, port));
+        // 注意这里设置非阻塞有两种方式:
+        // 1.客户端 channel 可以在 connect 成功后设置为非阻塞
+        // 2.也可以在 connect 之前设置为非阻塞，connect 成功之后调用 channel.finishConnect() 即可
+        channel.configureBlocking(false);
+        log.info("已发起服务端连接~~");
 
-            connector = new Connector(channel);
-        }
-    }
-
-    public void disconnect() throws IOException {
-        if(isClosed.compareAndSet(false, true)) {
-            connector.close();
-        }
-    }
-
-    public void send(MqttWireMessage message) throws IOException {
-        connector.send(message);
-    }
-
-    public void test() throws IOException {
-        Context.get().getIo().test(connector.getChannel());
+        connector = new Connector(channel);
     }
 }

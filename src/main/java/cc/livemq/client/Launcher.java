@@ -1,7 +1,6 @@
 package cc.livemq.client;
 
 import cc.livemq.constant.Constant;
-import cc.livemq.core.wire.MqttRandomMessage;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
@@ -13,16 +12,18 @@ import java.io.IOException;
 public final class Launcher {
 
     public static void main(String[] args) {
-        NioClient client = new NioClient();
+        NioClient client = null;
         try {
+            client = new NioClient();
             client.connect("127.0.0.1", Constant.SERVER_PORT);
         } catch (IOException e) {
             e.printStackTrace();
         }
 
         try {
-            Thread.sleep(3000);
-            client.test();
+            if(client != null) {
+                Thread.sleep(3000);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }

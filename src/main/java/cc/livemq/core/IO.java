@@ -4,7 +4,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
@@ -56,11 +55,9 @@ public final class IO implements Closeable {
         Thread thread = new Thread("io- read-thread"){
             @Override
             public void run() {
-                log.info("启动 selector 读事件检查. {}", isClosed.get());
                 while (!isClosed.get()) {
                     try {
-                        int select = readSelector.select();
-                        if(select == 0) {
+                        if(readSelector.select() == 0) {
                             waitSelection(inRead);
                             continue;
                         }else {
@@ -86,47 +83,14 @@ public final class IO implements Closeable {
         thread.start();
     }
 
-    public void run() {
-        while(true) {
-            try {
-                if(writeSelector.select() == 0) {
-                    continue;
-                }
-
-                Iterator<SelectionKey> iterator = writeSelector.selectedKeys().iterator();
-                while (iterator.hasNext()) {
-                    SelectionKey key = iterator.next();
-                    iterator.remove();
-                    // TODO
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    public void test(SocketChannel channel) throws ClosedChannelException {
-        writeSelector.wakeup();
-        channel.register(writeSelector, SelectionKey.OP_WRITE);
-    }
-
     private void startWrite() {
         Thread thread = new Thread("io-write-thread") {
             @Override
             public void run() {
-                log.info("启动 selector 写事件检查. {}", isClosed.get());
                 while (!isClosed.get()) {
                     try {
-                        try {
-                            Thread.sleep(1000);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-
-                        int select = writeSelector.select();
-                        log.info("write select() == {}", select);
-                        if(select == 0) {
-//                            waitSelection(inWrite);
+                        if(writeSelector.select() == 0) {
+                            waitSelection(inWrite);
                             continue;
                         }else {
                             log.info("有就绪的写事件~~");
@@ -224,7 +188,7 @@ public final class IO implements Closeable {
                 action = '写';
                 break;
         }
-        log.info("开始注册 [{}] 事件.", action);
+        log.info("注册 [{}] 事件开始.", action);
 
         synchronized (locker) {
             // 设定为当前动作状态为进行中
@@ -254,13 +218,13 @@ public final class IO implements Closeable {
                     map.put(key, runnable);
                 }
 
-                log.info("注册 [{}] 事件结果:{}", action, key);
+                log.info("注册 [{}] 事件完成: {}", action, key);
                 return key;
             } catch (Exception e) {
                 log.error("注册 [{}] 事件失败!! {}", action, e);
                 return null;
             } finally {
-                log.info("注册 [{}] 事件完成, 解锁并通知该{}锁", action, action);
+                log.info("注册 [{}] 事件完成, 解锁并 notify 该 [{}] 锁", action, action);
                 // 解锁
                 locker.set(false);
                 // 此处 try 的原因是有可能当前 locker 的锁并没有在等待，没有处于等待状态，在没有阻塞的情况下如果执行 notify() 操作会有一个异常

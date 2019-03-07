@@ -1,7 +1,6 @@
 package cc.livemq.core;
 
-import cc.livemq.core.wire.MqttRandomMessage;
-import cc.livemq.core.wire.MqttWireMessage;
+import cc.livemq.core.mqtt.wire.MqttRandomMessage;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.Closeable;
